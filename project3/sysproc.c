@@ -1,0 +1,164 @@
+#include "types.h"
+#include "x86.h"
+#include "defs.h"
+#include "date.h"
+#include "param.h"
+#include "memlayout.h"
+#include "mmu.h"
+#include "proc.h"
+
+uint
+sys_mmap(void)
+{
+  int addr;
+  int lenth;
+  int prot;
+  int flags;
+  int fd;
+  int offset;
+  if(argint(0, &addr) < 0)
+    return 0; //no argu
+  uint realaddr = (unsigned int)addr;
+  if(argint(1, &lenth) < 0)
+    return 0; //no argu
+  if(argint(2, &prot) < 0)
+    return 0; //no argu
+  if(argint(3, &flags) < 0)
+    return 0; //no argu
+  if(argint(4, &fd) < 0)
+    return 0; //no argu
+  if(argint(5, &offset) < 0)
+    return 0; //no argu
+  return mmap(realaddr, lenth, prot, flags, fd, offset);
+}
+
+int
+sys_munmap(void)
+{
+  int addr;
+  if(argint(0, &addr) <0)
+    return -1; //no argu
+  uint realaddr = (unsigned int)addr;
+  return munmap(realaddr);
+}
+
+int
+sys_freemem(void)
+{
+  return freemem();
+}
+
+
+int
+sys_getnice(void)
+{
+  int pid;
+  if(argint(0, &pid) < 0)
+    return -1; //no argu
+  return getnice(pid);
+}
+
+int
+sys_setnice(void)
+{
+  int pid,v;
+  if(argint(0, &pid) < 0)
+    return -1; //no
+  if(argint(1, &v) < 0)
+    return -1; //argu
+  return setnice(pid, v);
+}
+
+void
+sys_ps(void)
+{
+  int pid;
+  if(argint(0, &pid) <0)
+    return; // no argu
+  ps(pid);
+}
+
+
+
+int
+sys_fork(void)
+{
+  return fork();
+}
+
+int
+sys_exit(void)
+{
+  exit();
+  return 0;  // not reached
+}
+
+int
+sys_wait(void)
+{
+  return wait();
+}
+
+int
+sys_kill(void)
+{
+  int pid;
+
+  if(argint(0, &pid) < 0)
+    return -1;
+  return kill(pid);
+}
+
+int
+sys_getpid(void)
+{
+  return myproc()->pid;
+}
+
+int
+sys_sbrk(void)
+{
+  int addr;
+  int n;
+
+  if(argint(0, &n) < 0)
+    return -1;
+  addr = myproc()->sz;
+  if(growproc(n) < 0)
+    return -1;
+  return addr;
+}
+
+int
+sys_sleep(void)
+{
+  int n;
+  uint ticks0;
+
+  if(argint(0, &n) < 0)
+    return -1;
+  acquire(&tickslock);
+  ticks0 = ticks;
+  while(ticks - ticks0 < n){
+    if(myproc()->killed){
+      release(&tickslock);
+      return -1;
+    }
+    sleep(&ticks, &tickslock);
+  }
+  release(&tickslock);
+  return 0;
+}
+
+// return how many clock tick interrupts have occurred
+// since start.
+int
+sys_uptime(void)
+{
+  uint xticks;
+
+  acquire(&tickslock);
+  xticks = ticks;
+  release(&tickslock);
+  return xticks;
+}
